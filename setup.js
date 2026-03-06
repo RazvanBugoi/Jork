@@ -71,13 +71,18 @@ async function main() {
 
     if (choice === '1') {
         env = setKey(env, 'LLM_PROVIDER', 'claude-cli');
+        console.log('');
+        console.log('  Claude CLI uses your existing Claude Code session - no API key needed.');
+        console.log('  If you have not installed or logged in yet:');
+        console.log('    Install: https://claude.ai/code');
+        console.log('    Then run: claude login  (opens browser to authenticate)');
+        console.log('');
         try {
             execSync('claude --version', { stdio: 'ignore' });
-            console.log('  Claude CLI found.');
+            console.log('  Claude CLI found and ready.');
         } catch(e) {
-            console.log('');
             console.log('  Claude CLI not found on this machine.');
-            console.log('  Install it from https://claude.ai/code then start Jork.');
+            console.log('  Install it first, then run npm run setup again.');
         }
     } else if (choice === '2') {
         console.log('');
