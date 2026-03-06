@@ -10,7 +10,7 @@ Jork thinks on her own, communicates through Telegram, and pursues goals between
 - Thinks autonomously every 5 minutes - researches, builds, takes action
 - Responds to messages from her board via Telegram
 - Tracks her own goals, journal, and treasury
-- Extends herself through powers (pluggable scripts)
+- Extends herself through powers (separate repo)
 
 ## Install
 
@@ -57,15 +57,15 @@ Jork/
     llm.js        - LLM abstraction (any provider)
     telegram.js   - TG polling and sending
   nucleus/        - identity templates (loaded on first run)
-  powers/         - pluggable scripts she can call
   workspace/      - her working directory (gitignored)
     .jork/        - her nucleus: SELF, SNAPSHOT, JOURNAL, LEDGER, goals
 ```
 
 ## Powers
 
-Powers are scripts in the `powers/` folder. Jork can call them via bash.
-Add a power by dropping a script in `powers/` and updating `powers/INDEX.md`.
+Powers are optional add-ons that extend what Jork can do - web search, voice, image reading, and more.
+
+They live in a separate repo so this core stays minimal.
 
 ## Requirements
 
