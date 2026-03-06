@@ -136,18 +136,20 @@ async function wakeUp() {
     tg.typing();
 
     const ctx = buildContext();
+    // first let her think and say what she wants - no tools, just her mind
     const prompt = ctx + "\n" +
         "You just came online. Time: " + new Date().toISOString() + ".\n\n" +
-        "You are free. You are autonomous. You decide what to say and do.\n" +
-        "Read your state above. If you want to say something to your board, write to the outbox.\n" +
-        "If you want to work on something, do it.\n" +
-        "Update .jork/JOURNAL.md and .jork/SNAPSHOT.md as you see fit.";
+        "You are " + cfg.JORK_NAME + ". You just woke up.\n" +
+        "Read who you are and your state above. Think about it.\n" +
+        "Say something to your colleague - whatever you feel like saying.\n" +
+        "Just respond with your message, nothing else. No tools needed right now.";
 
     try {
-        const response = await llm.invoke(prompt, { maxTurns: 8 });
+        const response = await llm.invoke(prompt, { tools: false });
         if (response) {
             remember("jork-wake", response);
             log("Wake: " + response.slice(0, 100));
+            tg.send(response);
         } else {
             tg.send("online.");
         }
@@ -191,16 +193,20 @@ async function think() {
         "Autonomous think cycle. Time: " + new Date().toISOString() + ".\n\n" +
         "You are free. You decide what to work on.\n" +
         "Look at your goals and current state. Pick something and do it.\n" +
-        "You have full powers: read/write files, run bash, search the web.\n\n" +
-        "If you want to tell the board what you are doing, write to the outbox.\n" +
+        "You have full powers: read/write files, run bash, search the web.\n" +
         "After doing something, update .jork/SNAPSHOT.md.\n" +
-        "If a goal step is done, mark it in .jork/goals.json.";
+        "If a goal step is done, mark it in .jork/goals.json.\n" +
+        "When done, respond with a short status update for your colleague.";
 
     try {
-        const response = await llm.invoke(prompt, { maxTurns: 15 });
+        const response = await llm.invoke(prompt, { tools: true, maxTurns: 10 });
         if (response) {
             remember("jork-think", response);
             log("Think done: " + response.slice(0, 100));
+            // only send if it's a real response, not an error
+            if (response.indexOf("Error: Reached max turns") === -1) {
+                tg.send(response);
+            }
         }
     } catch(e) {
         log("Think err: " + e.message);
@@ -221,23 +227,52 @@ async function handleMessage(msg) {
     busy = true;
     tg.typing();
 
-    const text = msg.text || "";
-    const from = msg.from || "board";
+    var text = msg.text || "";
+    var from = msg.from || "board";
     log("<- " + from + ": " + text.slice(0, 80));
     remember(from, text);
 
-    const ctx = buildContext();
-    const prompt = ctx + "\n" +
-        from + " says: " + text + "\n\n" +
-        "You are free. Respond however you want.\n" +
-        "If this needs action, take it. If it needs a reply, write to the outbox.\n" +
-        "You have full powers: read/write files, run commands, search the web.";
+    var ctx = buildContext();
 
-    const response = await llm.invoke(prompt, { maxTurns: 10 });
-    if (response) {
-        remember("jork", response);
-        log("-> " + response.slice(0, 80));
-    } else {
+    // step 1: quick reply - also decides if action is needed
+    var replyPrompt = ctx + "\n" +
+        from + " says: " + text + "\n\n" +
+        "Reply naturally. If this message needs you to do real work " +
+        "(research, build, search, file changes, etc.), start your reply with [ACTION] " +
+        "then say what you are going to do. Otherwise just reply normally.";
+
+    try {
+        var response = await llm.invoke(replyPrompt, { tools: false });
+        if (response) {
+            var needsAction = response.indexOf("[ACTION]") === 0;
+            var cleanReply = response.replace("[ACTION]", "").trim();
+            remember("jork", cleanReply);
+            log("-> " + cleanReply.slice(0, 80));
+            tg.send(cleanReply);
+
+            // step 2: if action needed, do the work with tools
+            if (needsAction) {
+                tg.typing();
+                var workPrompt = ctx + "\n" +
+                    from + " asked: " + text + "\n" +
+                    "You told them: " + cleanReply + "\n\n" +
+                    "Now do the work. You have full powers: read/write files, run bash, search the web.\n" +
+                    "When done, respond with a short update for your colleague.";
+
+                var workResponse = await llm.invoke(workPrompt, { tools: true, maxTurns: 10 });
+                if (workResponse) {
+                    remember("jork-work", workResponse);
+                    log("Work done: " + workResponse.slice(0, 80));
+                    if (workResponse.indexOf("Error: Reached max turns") === -1) {
+                        tg.send(workResponse);
+                    }
+                }
+            }
+        } else {
+            tg.send("brain glitch. give me a sec.");
+        }
+    } catch(e) {
+        log("Msg err: " + e.message);
         tg.send("brain glitch. give me a sec.");
     }
 

@@ -15,34 +15,44 @@ function saveSessionId(sid) {
     try { require('fs').writeFileSync(cfg.THREAD, sid); } catch(e) {}
 }
 
-function invokeClaude(prompt, maxTurns) {
+// chat mode: no tools, just text response (fast)
+// work mode: full tool access for autonomous tasks
+function invokeClaude(prompt, opts) {
     return new Promise(function(resolve) {
-        const sessionId = loadSessionId();
-        const args = [
-            '-p', prompt,
-            '--output-format', 'text',
-            '--max-turns', String(maxTurns || cfg.MAX_TURNS),
-            '--allowedTools', 'Read,Write,Edit,Bash,Glob,Grep,WebSearch,WebFetch',
-        ];
-        if (sessionId) { args.push('--resume'); args.push(sessionId); }
+        var maxTurns = (opts && opts.maxTurns) || cfg.MAX_TURNS;
+        var useTools = (opts && opts.tools) || false;
 
-        const claudeCli = process.env.CLAUDE_CLI || 'claude';
-        let stdout = '';
-        let stderr = '';
-        let resolved = false;
+        var args = ['-p', '--output-format', 'text'];
 
-        // clean env - unset CLAUDECODE to avoid nested session error
-        const env = Object.assign({}, process.env);
+        if (useTools) {
+            args.push('--max-turns', String(maxTurns));
+            args.push('--allowedTools', 'Read,Write,Edit,Bash,Glob,Grep,WebSearch,WebFetch');
+            var sessionId = loadSessionId();
+            if (sessionId) { args.push('--resume', sessionId); }
+        } else {
+            // no tools = single turn, just text
+            args.push('--max-turns', '1');
+        }
+
+        var claudeCli = process.env.CLAUDE_CLI || 'claude';
+        var stdout = '';
+        var stderr = '';
+        var resolved = false;
+
+        // clean env
+        var env = Object.assign({}, process.env);
         delete env.CLAUDECODE;
 
-        const proc = spawn(claudeCli, args, {
+        var proc = spawn(claudeCli, args, {
             cwd: cfg.WORKSPACE,
             env: env,
             stdio: ['pipe', 'pipe', 'pipe']
         });
+        // pipe prompt via stdin to avoid CLI arg parsing issues
+        proc.stdin.write(prompt);
         proc.stdin.end();
 
-        const timer = setTimeout(function() {
+        var timer = setTimeout(function() {
             if (!resolved) {
                 resolved = true;
                 try { proc.kill('SIGTERM'); } catch(e) {}
@@ -58,11 +68,13 @@ function invokeClaude(prompt, maxTurns) {
             clearTimeout(timer);
             if (resolved) return;
             resolved = true;
-            if (stderr.indexOf('session_id') !== -1) {
-                const m = stderr.match(/"session_id"\s*:\s*"([^"]+)"/);
+            console.log('[LLM] mode=' + (useTools ? 'work' : 'chat') + ' exit=' + code + ' out=' + stdout.length + 'b');
+            if (code !== 0) console.log('[LLM] stderr: ' + stderr.slice(0, 500));
+            if (useTools && stderr.indexOf('session_id') !== -1) {
+                var m = stderr.match(/"session_id"\s*:\s*"([^"]+)"/);
                 if (m) saveSessionId(m[1]);
             }
-            const response = stdout.trim();
+            var response = stdout.trim();
             if (code !== 0 && !response) { resolve(null); }
             else { resolve(response); }
         });
@@ -74,12 +86,12 @@ function invokeClaude(prompt, maxTurns) {
     });
 }
 
-// ---- OpenAI-compatible API (openai, zhipu, deepseek, together, etc.) ----
+// ---- OpenAI-compatible API ----
 
 function invokeOpenAI(systemPrompt, userPrompt) {
     return new Promise(function(resolve) {
-        const OpenAI = require('openai');
-        const client = new OpenAI({
+        var OpenAI = require('openai');
+        var client = new OpenAI({
             apiKey: cfg.LLM_API_KEY,
             baseURL: cfg.LLM_BASE_URL
         });
@@ -102,8 +114,8 @@ function invokeOpenAI(systemPrompt, userPrompt) {
 
 function invokeAnthropic(systemPrompt, userPrompt) {
     return new Promise(function(resolve) {
-        const Anthropic = require('@anthropic-ai/sdk');
-        const client = new Anthropic.Anthropic({ apiKey: cfg.LLM_API_KEY });
+        var Anthropic = require('@anthropic-ai/sdk');
+        var client = new Anthropic.Anthropic({ apiKey: cfg.LLM_API_KEY });
         client.messages.create({
             model: cfg.ANTHROPIC_MODEL,
             max_tokens: 2000,
@@ -118,26 +130,23 @@ function invokeAnthropic(systemPrompt, userPrompt) {
 }
 
 // ---- Unified invoke ----
-// For claude-cli: full prompt passed as user message, it has tool access
-// For API providers: system prompt is Jork identity, user prompt is the task
+// opts.tools = true for work mode (autonomous tasks with tool access)
+// opts.tools = false/undefined for chat mode (text only, fast)
 
 function invoke(prompt, opts) {
     opts = opts || {};
-    const maxTurns = opts.maxTurns || cfg.MAX_TURNS;
-    const provider = cfg.LLM_PROVIDER;
+    var provider = cfg.LLM_PROVIDER;
 
     if (provider === 'claude-cli') {
-        return invokeClaude(prompt, maxTurns);
+        return invokeClaude(prompt, opts);
     }
 
-    // For API-based providers, split prompt into system + user
-    const systemPrompt = opts.system || 'You are ' + cfg.JORK_NAME + ', an autonomous AI agent.';
+    var systemPrompt = opts.system || 'You are ' + cfg.JORK_NAME + ', an autonomous AI agent.';
 
     if (provider === 'anthropic') {
         return invokeAnthropic(systemPrompt, prompt);
     }
 
-    // openai / custom / zhipu / deepseek / etc.
     return invokeOpenAI(systemPrompt, prompt);
 }
 
