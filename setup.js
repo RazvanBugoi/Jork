@@ -102,20 +102,29 @@ async function main() {
     console.log('  Config saved.');
 
     rl.close();
-    done();
-}
 
-function done() {
     console.log('');
     line();
-    console.log('  Done. Jork is ready.');
+    console.log('  Done. Starting Jork...');
     line();
     console.log('');
-    console.log('  pm2 start ecosystem.config.js');
-    console.log('');
-    console.log('  She will come online, read who she is, and message you on Telegram.');
-    console.log('  She handles powers herself - no manual setup needed.');
-    console.log('');
+
+    try {
+        execSync('pm2 start ecosystem.config.js', { cwd: __dirname, stdio: 'inherit' });
+        console.log('');
+        console.log('  Jork is now alive.');
+        console.log('  She will message you on Telegram shortly.');
+        console.log('');
+    } catch(e) {
+        // pm2 not installed - fallback message
+        console.log('  pm2 not found. Start her manually:');
+        console.log('    node src/jork.js');
+        console.log('');
+        console.log('  Or install pm2 first:');
+        console.log('    npm install -g pm2');
+        console.log('    pm2 start ecosystem.config.js');
+        console.log('');
+    }
 }
 
 main().catch(e => {
