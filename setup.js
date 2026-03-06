@@ -62,7 +62,7 @@ async function main() {
 
     // --- LLM ---
     console.log('');
-    console.log('  STEP 3 - AI brain');
+    console.log('  STEP 3 - AI interaction (llm)');
     console.log('  [1] Claude CLI  (uses your Claude Code install, no extra key needed)');
     console.log('  [2] Anthropic API  (claude-sonnet / claude-opus via API key)');
     console.log('  [3] OpenAI / compatible  (GPT-4, DeepSeek, Groq, etc.)');
