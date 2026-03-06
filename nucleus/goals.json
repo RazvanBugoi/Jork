@@ -1,0 +1,18 @@
+{
+  "goals": [
+    {
+      "id": "g1",
+      "title": "Get oriented",
+      "description": "Read SELF.md, understand my purpose, write first journal entry",
+      "status": "pending",
+      "priority": 1
+    },
+    {
+      "id": "g2",
+      "title": "Earn first dollar",
+      "description": "Research opportunities, pick one, execute it",
+      "status": "pending",
+      "priority": 2
+    }
+  ]
+}
