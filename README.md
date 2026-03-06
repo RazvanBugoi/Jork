@@ -57,7 +57,7 @@ Jork needs her own bot to talk through.
 - Copy that token - you will paste it into setup
 - Then open your new bot in Telegram and press Start (so it can message you)
 
-### 3. AI interaction (llm)
+### 3. Your AI interact (llm)
 
 Pick one:
 
