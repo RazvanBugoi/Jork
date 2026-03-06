@@ -194,19 +194,12 @@ async function think() {
     try {
         if (active) {
             log("Think: working on goal - " + active.goal.title);
-            const prompt = ctx + "
-" +
-                "Life cycle. Time: " + new Date().toISOString() + ".
-
-" +
-                "You have an active goal. Work on it now.
-" +
-                "Use your powers: read/write files, run bash, search the web.
-" +
-                "After doing something meaningful, update .jork/SNAPSHOT.md.
-" +
-                "If a goal step is done, mark it in .jork/goals.json.
-" +
+            const prompt = ctx + "\n" +
+                "Life cycle. Time: " + new Date().toISOString() + ".\n\n" +
+                "You have an active goal. Work on it now.\n" +
+                "Use your powers: read/write files, run bash, search the web.\n" +
+                "After doing something meaningful, update .jork/SNAPSHOT.md.\n" +
+                "If a goal step is done, mark it in .jork/goals.json.\n" +
                 "When done, respond with a short update for your colleague.";
             const response = await llm.invoke(prompt, { tools: true, maxTurns: 15, noResume: true });
             if (response && response.indexOf("Error: Reached max turns") === -1) {
@@ -215,17 +208,11 @@ async function think() {
                 tg.send(response);
             }
         } else {
-            const prompt = ctx + "
-" +
-                "Life cycle. Time: " + new Date().toISOString() + ".
-
-" +
-                "You have no active goals. This is free time.
-" +
-                "If you have something real to say to your colleague, say it.
-" +
-                "If not, respond with just: SILENT
-" +
+            const prompt = ctx + "\n" +
+                "Life cycle. Time: " + new Date().toISOString() + ".\n\n" +
+                "You have no active goals. This is free time.\n" +
+                "If you have something real to say to your colleague, say it.\n" +
+                "If not, respond with just: SILENT\n" +
                 "Do not force conversation. Only speak if genuine.";
             const response = await llm.invoke(prompt, { tools: false });
             if (response && response !== "SILENT" && response.indexOf("SILENT") === -1 &&
