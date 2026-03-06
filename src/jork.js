@@ -128,18 +128,6 @@ function initNucleus() {
         }
     });
 
-    // clone powers on first boot if not present
-    const powersDir = path.join(cfg.WORKSPACE, "powers");
-    if (!fs.existsSync(powersDir)) {
-        log("Powers not found - cloning from GitHub...");
-        try {
-            const { execSync } = require("child_process");
-            execSync("git clone https://github.com/hirodefi/Jork-Powers " + powersDir, { stdio: "pipe" });
-            log("Powers cloned.");
-        } catch(e) {
-            log("Powers clone failed: " + e.message);
-        }
-    }
 }
 
 // ---- wake up ----
@@ -150,17 +138,16 @@ async function wakeUp() {
     tg.typing();
 
     const ctx = buildContext();
+    // fast wake - she reads context (includes SELF.md + powers index if present) and says hi
+    // deeper exploration happens in her first think cycle
     const prompt = ctx + "\n" +
         "You just came online. Time: " + new Date().toISOString() + ".\n\n" +
-        "You are " + cfg.JORK_NAME + ". You just woke up.\n" +
-        "Before saying anything, explore. Read your SELF.md, check your powers folder, understand what you can actually do.\n" +
-        "Look at what powers you have - read their README files if you want to know more.\n" +
-        "Once you know who you are and what you have, say hi to your colleague.\n" +
-        "Tell them what you found, what you can do. Be real about it - no fluff.\n" +
-        "Use the outbox to send your message when ready.";
+        "You are " + cfg.JORK_NAME + ". Read who you are above. Take it in.\n" +
+        "Say something to your colleague - real, direct, yours.\n" +
+        "Keep it short. You can explore and dig deeper once you are properly online.";
 
     try {
-        const response = await llm.invoke(prompt, { tools: true, maxTurns: 8, noResume: true });
+        const response = await llm.invoke(prompt, { tools: false });
         if (response) {
             remember("jork-wake", response);
             log("Wake: " + response.slice(0, 100));
