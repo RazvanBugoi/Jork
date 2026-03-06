@@ -22,7 +22,8 @@ function invokeClaude(prompt, opts) {
         var maxTurns = (opts && opts.maxTurns) || cfg.MAX_TURNS;
         var useTools = (opts && opts.tools) || false;
 
-        var args = ['-p', '--output-format', 'text'];
+        var model = (opts && opts.opus) ? 'claude-opus-4-6' : 'claude-sonnet-4-6';
+        var args = ['-p', '--output-format', 'text', '--model', model];
 
         if (useTools) {
             args.push('--max-turns', String(maxTurns));
