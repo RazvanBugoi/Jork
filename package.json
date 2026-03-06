@@ -4,6 +4,7 @@
   "description": "Jork - an autonomous AI agent with life force, memory, and goals",
   "main": "src/jork.js",
   "scripts": {
+    "setup": "node setup.js",
     "start": "node src/jork.js",
     "install-pm2": "pm2 start ecosystem.config.js",
     "stop": "pm2 stop jork",
