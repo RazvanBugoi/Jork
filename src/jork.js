@@ -127,6 +127,19 @@ function initNucleus() {
             }
         }
     });
+
+    // clone powers on first boot if not present
+    const powersDir = path.join(cfg.WORKSPACE, "powers");
+    if (!fs.existsSync(powersDir)) {
+        log("Powers not found - cloning from GitHub...");
+        try {
+            const { execSync } = require("child_process");
+            execSync("git clone https://github.com/hirodefi/Jork-Powers " + powersDir, { stdio: "pipe" });
+            log("Powers cloned.");
+        } catch(e) {
+            log("Powers clone failed: " + e.message);
+        }
+    }
 }
 
 // ---- wake up ----
@@ -284,15 +297,13 @@ async function handleMessage(msg) {
                 }
             }
         } else {
-            // chat hit max turns = claude tried to use tools, just go straight to work mode
-            var autoReply = "on it.";
-            remember("jork", autoReply);
-            log("-> " + autoReply + " (auto-work)");
-            tg.send(autoReply);
+            // chat hit max turns = claude tried to use tools, go to work mode
+            // let her decide what to say first via outbox, then do the work
             tg.typing();
             var autoWorkPrompt = ctx + "\n" +
                 from + " asked: " + text + "\n\n" +
-                "Do the work. You have full powers: read/write files, run bash, search the web.\n" +
+                "Before starting work, send a quick message to your colleague letting them know what you are about to do - use the outbox.\n" +
+                "Then do the work. You have full powers: read/write files, run bash, search the web.\n" +
                 "When done, respond with a short update for your colleague.";
             var autoWorkResponse = await llm.invoke(autoWorkPrompt, { tools: true, maxTurns: 10 });
             if (autoWorkResponse && autoWorkResponse.indexOf("Error: Reached max turns") === -1) {

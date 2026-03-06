@@ -33,7 +33,8 @@ function invokeClaude(prompt, opts) {
                 if (sessionId) { args.push('--resume', sessionId); }
             }
         } else {
-            // no tools = single turn, just text
+            // no tools = text reply only, prepend hard instruction
+            prompt = "IMPORTANT: Reply with plain text only. Do not use any tools or functions.\n\n" + prompt;
             args.push('--max-turns', '3');
         }
 
