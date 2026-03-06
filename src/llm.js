@@ -22,7 +22,7 @@ function invokeClaude(prompt, maxTurns) {
             '-p', prompt,
             '--output-format', 'text',
             '--max-turns', String(maxTurns || cfg.MAX_TURNS),
-            '--allowedTools', 'Read,Write,Edit,Bash,Glob,Grep',
+            '--allowedTools', 'Read,Write,Edit,Bash,Glob,Grep,WebSearch,WebFetch',
         ];
         if (sessionId) { args.push('--resume'); args.push(sessionId); }
 

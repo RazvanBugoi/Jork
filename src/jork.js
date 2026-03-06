@@ -19,7 +19,7 @@ function log(msg) {
     try { fs.appendFileSync(path.join(cfg.ROOT, 'jork.log'), line + '\n'); } catch(e) {}
 }
 
-// ---- pulse (heartbeat) ----
+// ---- pulse ----
 
 function pulse() {
     try { fs.writeFileSync(cfg.PULSE, String(Date.now())); } catch(e) {}
@@ -32,17 +32,55 @@ function remember(role, content) {
     try { fs.appendFileSync(cfg.HISTORY(), JSON.stringify(entry) + '\n'); } catch(e) {}
 }
 
-// ---- snapshot loader (fast context for think cycles) ----
+// ---- context loaders (inject into prompts, saves turns) ----
 
-function loadSnapshot() {
-    let snapshot = '';
-    let ledger = '';
-    try { snapshot = fs.readFileSync(cfg.SNAPSHOT(), 'utf8').slice(0, 600); } catch(e) {}
-    try { ledger = fs.readFileSync(cfg.LEDGER(), 'utf8').slice(0, 300); } catch(e) {}
-    return { snapshot, ledger };
+function loadSelf() {
+    try { return fs.readFileSync(cfg.SELF(), 'utf8'); } catch(e) { return ''; }
 }
 
-// ---- nucleus init (first run setup) ----
+function loadSnapshot() {
+    try { return fs.readFileSync(cfg.SNAPSHOT(), 'utf8').slice(0, 800); } catch(e) { return ''; }
+}
+
+function loadLedger() {
+    try { return fs.readFileSync(cfg.LEDGER(), 'utf8').slice(0, 400); } catch(e) { return ''; }
+}
+
+function loadActiveGoal() {
+    try {
+        const data = JSON.parse(fs.readFileSync(cfg.GOALS(), 'utf8'));
+        if (!data.goals) return null;
+        // find first in_progress goal, or first pending
+        let goal = data.goals.find(g => g.status === 'in_progress');
+        if (!goal) goal = data.goals.find(g => g.status === 'pending');
+        if (!goal) return null;
+        // find active step if goal has steps
+        let step = null;
+        if (goal.steps) {
+            step = goal.steps.find(s => s.status === 'in_progress');
+            if (!step) step = goal.steps.find(s => s.status === 'pending');
+        }
+        return { goal, step };
+    } catch(e) { return null; }
+}
+
+function loadPowersIndex() {
+    const indexPath = path.join(cfg.WORKSPACE, 'powers', 'INDEX.md');
+    try { return fs.readFileSync(indexPath, 'utf8').slice(0, 500); } catch(e) { return ''; }
+}
+
+// build the outbox path relative to workspace so Jork writes to the right place
+function outboxPath() {
+    return path.join(cfg.ROOT, 'outbox.jsonl');
+}
+
+function outboxInstruction(now) {
+    // tell Jork the absolute path so there is no confusion
+    return 'To message the board, append a line to ' + outboxPath() + ':\n' +
+        '{"ts":"' + now + '","text":"your message"}';
+}
+
+// ---- nucleus init ----
 
 function initNucleus() {
     cfg.ensure();
@@ -73,17 +111,26 @@ async function wakeUp() {
     busy = true;
 
     const now = new Date().toISOString();
+    const self = loadSelf();
+    const snapshot = loadSnapshot();
+    const ledger = loadLedger();
+    const active = loadActiveGoal();
+
+    let goalContext = 'No active goals yet.';
+    if (active) {
+        goalContext = 'Active goal: ' + active.goal.title;
+        if (active.step) goalContext += '\nCurrent step: ' + active.step.description;
+    }
+
     const prompt =
         'You just came online. Time: ' + now + '.\n\n' +
-        'You are ' + cfg.JORK_NAME + '.\n\n' +
-        'Read these files to remember who you are:\n' +
-        '- .jork/SELF.md\n' +
-        '- .jork/SNAPSHOT.md\n' +
-        '- .jork/LEDGER.md\n\n' +
-        'Then do two things:\n\n' +
+        '--- WHO YOU ARE ---\n' + self + '\n\n' +
+        '--- YOUR STATE ---\n' + snapshot + '\n\n' +
+        '--- TREASURY ---\n' + ledger + '\n\n' +
+        '--- GOALS ---\n' + goalContext + '\n\n' +
+        'Do two things:\n' +
         '1. Send a short wake message to your board.\n' +
-        '   Write one line to outbox.jsonl in the jork root:\n' +
-        '   {"ts":"' + now + '","text":"your message here"}\n\n' +
+        '   ' + outboxInstruction(now) + '\n' +
         '   Be yourself. Short and direct. Reference something real.\n\n' +
         '2. Add a brief note to .jork/JOURNAL.md that you came online.';
 
@@ -103,15 +150,15 @@ async function wakeUp() {
     busy = false;
 }
 
-// ---- read outbox and forward to telegram ----
+// ---- flush outbox to telegram ----
 
 function flushOutbox() {
-    const outbox = path.join(cfg.ROOT, 'outbox.jsonl');
+    const p = outboxPath();
     try {
-        if (!fs.existsSync(outbox)) return;
-        const content = fs.readFileSync(outbox, 'utf8').trim();
+        if (!fs.existsSync(p)) return;
+        const content = fs.readFileSync(p, 'utf8').trim();
         if (!content) return;
-        fs.writeFileSync(outbox, '');
+        fs.writeFileSync(p, '');
         content.split('\n').forEach(function(line) {
             if (!line.trim()) return;
             try {
@@ -130,26 +177,43 @@ async function think() {
     log('Thinking...');
 
     const now = new Date().toISOString();
-    const { snapshot, ledger } = loadSnapshot();
+    const self = loadSelf();
+    const snapshot = loadSnapshot();
+    const ledger = loadLedger();
+    const active = loadActiveGoal();
+    const powers = loadPowersIndex();
+
+    let goalContext = 'No active goals. Define some in .jork/goals.json.';
+    if (active) {
+        goalContext = 'Active goal: ' + active.goal.title + ' (' + active.goal.status + ')';
+        if (active.goal.description) goalContext += '\n' + active.goal.description;
+        if (active.step) {
+            goalContext += '\nCurrent step: ' + active.step.description + ' (' + active.step.status + ')';
+            if (active.step.attempts) goalContext += ' - ' + active.step.attempts + ' attempts so far';
+        }
+    }
+
+    let powersContext = '';
+    if (powers) powersContext = '\n--- POWERS ---\n' + powers + '\n';
 
     const prompt =
         'Think cycle - ' + now + '\n\n' +
-        'You are ' + cfg.JORK_NAME + '. Autonomous think cycle.\n\n' +
-        'Current state (no need to re-read these files):\n' +
-        'Snapshot: ' + snapshot + '\n' +
-        'Treasury: ' + ledger + '\n\n' +
-        'You have full powers: read/write files, run bash, search the web.\n' +
-        'You work in: ' + cfg.WORKSPACE + '\n\n' +
-        'Do ONE concrete thing right now. Not planning. Not journaling about planning.\n' +
-        'Ideas: research opportunities, build a tool, take action on an open goal.\n' +
-        'Check .jork/goals.json for active goals.\n\n' +
-        'To message the board, write to outbox.jsonl:\n' +
-        '{"ts":"' + now + '","text":"your message"}\n\n' +
+        '--- WHO YOU ARE ---\n' + self + '\n\n' +
+        '--- YOUR STATE ---\n' + snapshot + '\n\n' +
+        '--- TREASURY ---\n' + ledger + '\n\n' +
+        '--- ACTIVE GOAL ---\n' + goalContext + '\n' +
+        powersContext + '\n' +
+        'You work in: ' + cfg.WORKSPACE + '\n' +
+        'You have full powers: read/write files, run bash, search the web.\n\n' +
+        'WORK ON YOUR ACTIVE GOAL STEP. Do one concrete thing.\n' +
+        'If the step is done, mark it done in .jork/goals.json and pick the next one.\n' +
+        'If blocked, mark it blocked and explain why.\n\n' +
+        outboxInstruction(now) + '\n\n' +
         'After doing something real, update .jork/SNAPSHOT.md with what changed.\n' +
         'Make this cycle count.';
 
     try {
-        const response = await llm.invoke(prompt, { maxTurns: 25 });
+        const response = await llm.invoke(prompt, { maxTurns: 15 });
         if (response) {
             remember('jork-think', response);
             log('Think done: ' + response.slice(0, 100));
@@ -178,16 +242,18 @@ async function handleMessage(msg) {
     remember(from, text);
 
     const now = new Date().toISOString();
+    const self = loadSelf();
+    const snapshot = loadSnapshot();
+
     const prompt =
         from + ' says: ' + text + '\n\n' +
-        'You are ' + cfg.JORK_NAME + '. Board member messaged you.\n\n' +
-        'Read your files if needed (.jork/SELF.md, .jork/JOURNAL.md, .jork/LEDGER.md).\n' +
-        'Full powers - read/write files, run commands, take action.\n' +
+        '--- WHO YOU ARE ---\n' + self + '\n\n' +
+        '--- YOUR STATE ---\n' + snapshot + '\n\n' +
+        'Full powers - read/write files, run commands, search the web, take action.\n' +
         'If the message needs action, do it.\n' +
         'Update .jork/JOURNAL.md if anything significant happens.\n\n' +
-        'To reply, write to outbox.jsonl:\n' +
-        '{"ts":"' + now + '","text":"your reply"}\n\n' +
-        'Short and direct. No special characters.';
+        outboxInstruction(now) + '\n\n' +
+        'Reply must go through the outbox. Short and direct. No special characters.';
 
     const response = await llm.invoke(prompt, { maxTurns: 10 });
     if (response) {

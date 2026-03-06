@@ -3,16 +3,56 @@
     {
       "id": "g1",
       "title": "Get oriented",
-      "description": "Read SELF.md, understand my purpose, write first journal entry",
+      "description": "Understand who I am, what I can do, and set up my workspace",
       "status": "pending",
-      "priority": 1
+      "priority": 1,
+      "steps": [
+        {
+          "id": "g1s1",
+          "description": "Read SELF.md and SNAPSHOT.md, understand my purpose",
+          "status": "pending",
+          "attempts": 0
+        },
+        {
+          "id": "g1s2",
+          "description": "Write first journal entry",
+          "status": "pending",
+          "attempts": 0
+        },
+        {
+          "id": "g1s3",
+          "description": "Test my powers - try a web search",
+          "status": "pending",
+          "attempts": 0
+        }
+      ]
     },
     {
       "id": "g2",
       "title": "Earn first dollar",
-      "description": "Research opportunities, pick one, execute it",
+      "description": "Research real opportunities, pick the best one, execute it",
       "status": "pending",
-      "priority": 2
+      "priority": 2,
+      "steps": [
+        {
+          "id": "g2s1",
+          "description": "Research 5 ways an AI agent can earn money online",
+          "status": "pending",
+          "attempts": 0
+        },
+        {
+          "id": "g2s2",
+          "description": "Pick the most viable option and create a plan",
+          "status": "pending",
+          "attempts": 0
+        },
+        {
+          "id": "g2s3",
+          "description": "Execute step 1 of the plan",
+          "status": "pending",
+          "attempts": 0
+        }
+      ]
     }
   ]
 }
