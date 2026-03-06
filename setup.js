@@ -101,30 +101,6 @@ async function main() {
     console.log('');
     console.log('  Config saved.');
 
-    // --- Powers ---
-    console.log('');
-    console.log('  STEP 4 - Powers (optional but recommended)');
-    console.log('  Powers let Jork search the web, use Solana, read images, and more.');
-    const wp = (await ask('  Install powers now? (y/n): ')).trim().toLowerCase();
-
-    if (wp === 'y') {
-        const workspaceDir = path.join(__dirname, 'workspace');
-        const powersDir = path.join(workspaceDir, 'powers');
-        if (!fs.existsSync(workspaceDir)) fs.mkdirSync(workspaceDir);
-        if (!fs.existsSync(powersDir)) {
-            console.log('  Cloning powers...');
-            try {
-                execSync(`git clone https://github.com/hirodefi/Jork-Powers "${powersDir}"`, { stdio: 'inherit' });
-                console.log('  Powers installed.');
-            } catch(e) {
-                console.log('  Clone failed. Install manually later:');
-                console.log('  git clone https://github.com/hirodefi/Jork-Powers workspace/powers');
-            }
-        } else {
-            console.log('  Powers already installed.');
-        }
-    }
-
     rl.close();
     done();
 }
@@ -132,13 +108,13 @@ async function main() {
 function done() {
     console.log('');
     line();
-    console.log('  Done. Jork is now ready.');
+    console.log('  Done. Jork is ready.');
     line();
     console.log('');
-    console.log('  Start her:');
-    console.log('    pm2 start ecosystem.config.js');
+    console.log('  pm2 start ecosystem.config.js');
     console.log('');
-    console.log('  Then go say hi to her on Telegram.');
+    console.log('  She will come online, read who she is, and message you on Telegram.');
+    console.log('  She handles powers herself - no manual setup needed.');
     console.log('');
 }
 
