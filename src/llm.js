@@ -31,8 +31,13 @@ function invokeClaude(prompt, maxTurns) {
         let stderr = '';
         let resolved = false;
 
+        // clean env - unset CLAUDECODE to avoid nested session error
+        const env = Object.assign({}, process.env);
+        delete env.CLAUDECODE;
+
         const proc = spawn(claudeCli, args, {
             cwd: cfg.WORKSPACE,
+            env: env,
             stdio: ['pipe', 'pipe', 'pipe']
         });
         proc.stdin.end();
