@@ -98,7 +98,7 @@ function buildContext() {
     if (powers) ctx += "\n--- POWERS ---\n" + powers + "\n";
 
     ctx += "\n--- WORKSPACE ---\n" + cfg.WORKSPACE + "\n";
-    ctx += "\n--- OUTBOX ---\nTo message the board, append to " + outboxPath() + ":\n";
+    ctx += "\n--- OUTBOX ---\nTo message your colleague, append to " + outboxPath() + ":\n";
     ctx += '{"ts":"' + now + '","text":"your message"}\n';
 
     return ctx;
@@ -199,7 +199,7 @@ async function think() {
         "When done, respond with a short status update for your colleague.";
 
     try {
-        const response = await llm.invoke(prompt, { tools: true, maxTurns: 10 });
+        const response = await llm.invoke(prompt, { tools: true, maxTurns: 15, noResume: true });
         if (response) {
             remember("jork-think", response);
             log("Think done: " + response.slice(0, 100));
@@ -243,7 +243,7 @@ async function handleMessage(msg) {
 
     try {
         var response = await llm.invoke(replyPrompt, { tools: false });
-        if (response) {
+        if (response && response.indexOf("Error: Reached max turns") === -1) {
             var needsAction = response.indexOf("[ACTION]") === 0;
             var cleanReply = response.replace("[ACTION]", "").trim();
             remember("jork", cleanReply);

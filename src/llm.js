@@ -28,11 +28,13 @@ function invokeClaude(prompt, opts) {
         if (useTools) {
             args.push('--max-turns', String(maxTurns));
             args.push('--allowedTools', 'Read,Write,Edit,Bash,Glob,Grep,WebSearch,WebFetch');
-            var sessionId = loadSessionId();
-            if (sessionId) { args.push('--resume', sessionId); }
+            if (!opts.noResume) {
+                var sessionId = loadSessionId();
+                if (sessionId) { args.push('--resume', sessionId); }
+            }
         } else {
             // no tools = single turn, just text
-            args.push('--max-turns', '1');
+            args.push('--max-turns', '3');
         }
 
         var claudeCli = process.env.CLAUDE_CLI || 'claude';
