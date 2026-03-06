@@ -5,8 +5,9 @@ const cfg = require("./config");
 const tg = require("./telegram");
 const llm = require("./llm");
 
-var busy = false;
-var queue = [];
+var msgBusy = false;
+var thinkBusy = false;
+var msgQueue = [];
 var lastThink = 0;
 var lastPulse = 0;
 
@@ -132,7 +133,7 @@ function initNucleus() {
 
 async function wakeUp() {
     log("Waking up...");
-    busy = true;
+    msgBusy = true;
     tg.typing();
 
     const ctx = buildContext();
@@ -158,7 +159,7 @@ async function wakeUp() {
         tg.send("online.");
     }
 
-    busy = false;
+    msgBusy = false;
 }
 
 // ---- flush outbox to telegram ----
@@ -180,55 +181,82 @@ function flushOutbox() {
     } catch(e) {}
 }
 
-// ---- autonomous think cycle ----
+// ---- life cycle (background, never blocks messages) ----
 
 async function think() {
-    if (busy) { log("Skip think - busy"); return; }
-    busy = true;
-    log("Thinking...");
-    tg.typing();
+    if (thinkBusy) return;
+    thinkBusy = true;
+    log("Think cycle...");
 
     const ctx = buildContext();
-    const prompt = ctx + "\n" +
-        "Autonomous think cycle. Time: " + new Date().toISOString() + ".\n\n" +
-        "You are free. You decide what to work on.\n" +
-        "Look at your goals and current state. Pick something and do it.\n" +
-        "You have full powers: read/write files, run bash, search the web.\n" +
-        "After doing something, update .jork/SNAPSHOT.md.\n" +
-        "If a goal step is done, mark it in .jork/goals.json.\n" +
-        "When done, respond with a short status update for your colleague.";
+    const active = loadActiveGoal();
 
     try {
-        const response = await llm.invoke(prompt, { tools: true, maxTurns: 15, noResume: true });
-        if (response) {
-            remember("jork-think", response);
-            log("Think done: " + response.slice(0, 100));
-            // only send if it's a real response, not an error
-            if (response.indexOf("Error: Reached max turns") === -1) {
+        if (active) {
+            log("Think: working on goal - " + active.goal.title);
+            const prompt = ctx + "
+" +
+                "Life cycle. Time: " + new Date().toISOString() + ".
+
+" +
+                "You have an active goal. Work on it now.
+" +
+                "Use your powers: read/write files, run bash, search the web.
+" +
+                "After doing something meaningful, update .jork/SNAPSHOT.md.
+" +
+                "If a goal step is done, mark it in .jork/goals.json.
+" +
+                "When done, respond with a short update for your colleague.";
+            const response = await llm.invoke(prompt, { tools: true, maxTurns: 15, noResume: true });
+            if (response && response.indexOf("Error: Reached max turns") === -1) {
+                remember("jork-think", response);
+                log("Think done: " + response.slice(0, 100));
                 tg.send(response);
+            }
+        } else {
+            const prompt = ctx + "
+" +
+                "Life cycle. Time: " + new Date().toISOString() + ".
+
+" +
+                "You have no active goals. This is free time.
+" +
+                "If you have something real to say to your colleague, say it.
+" +
+                "If not, respond with just: SILENT
+" +
+                "Do not force conversation. Only speak if genuine.";
+            const response = await llm.invoke(prompt, { tools: false });
+            if (response && response !== "SILENT" && response.indexOf("SILENT") === -1 &&
+                response.indexOf("Error: Reached max turns") === -1) {
+                remember("jork-reflect", response);
+                log("Reflect: " + response.slice(0, 100));
+                tg.send(response);
+            } else {
+                log("Think: silent");
             }
         }
     } catch(e) {
         log("Think err: " + e.message);
     }
 
-    busy = false;
-    while (queue.length > 0) await handleMessage(queue.shift());
+    thinkBusy = false;
 }
 
-// ---- handle message from board ----
+// ---- handle message from colleague ----
 
 async function handleMessage(msg) {
-    if (busy) {
-        queue.push(msg);
+    if (msgBusy) {
+        msgQueue.push(msg);
         log("Queued: " + (msg.text || "").slice(0, 50));
         return;
     }
-    busy = true;
+    msgBusy = true;
     tg.typing();
 
     var text = msg.text || "";
-    var from = msg.from || "board";
+    var from = msg.from || "colleague";
     log("<- " + from + ": " + text.slice(0, 80));
     remember(from, text);
 
@@ -276,8 +304,8 @@ async function handleMessage(msg) {
         tg.send("brain glitch. give me a sec.");
     }
 
-    busy = false;
-    if (queue.length > 0) await handleMessage(queue.shift());
+    msgBusy = false;
+    if (msgQueue.length > 0) await handleMessage(msgQueue.shift());
 }
 
 // ---- main loop ----
@@ -296,7 +324,7 @@ async function run() {
 
     await wakeUp();
 
-    lastThink = Date.now() - cfg.THINK_INTERVAL + 60000;
+    lastThink = Date.now() - cfg.THINK_INTERVAL + 120000;
 
     async function loop() {
         const now = Date.now();
@@ -311,9 +339,9 @@ async function run() {
             await handleMessage(msg);
         }
 
-        if (!busy && now - lastThink >= cfg.THINK_INTERVAL) {
-            await think();
+        if (!thinkBusy && now - lastThink >= cfg.THINK_INTERVAL) {
             lastThink = now;
+            think().catch(function(e) { log("Think fatal: " + e.message); thinkBusy = false; });
         }
 
         setTimeout(loop, cfg.POLL_INTERVAL);
