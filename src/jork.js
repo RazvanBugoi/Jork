@@ -313,6 +313,16 @@ async function handleMessage(msg) {
         var response = await llm.invoke(replyPrompt, { tools: false });
         if (response && response.indexOf("Error: Reached max turns") === -1) {
             var needsAction = response.indexOf("[ACTION]") === 0;
+            // also catch implicit action promises - "give me a minute", "reading now", "on it", etc.
+            if (!needsAction) {
+                var lower = response.toLowerCase();
+                var actionPhrases = ["give me a minute", "give me a sec", "on it", "reading now",
+                    "checking now", "looking at", "fetching", "pulling", "will read", "let me read",
+                    "reading the", "checking the", "looking into", "digging into"];
+                for (var ap = 0; ap < actionPhrases.length; ap++) {
+                    if (lower.indexOf(actionPhrases[ap]) !== -1) { needsAction = true; break; }
+                }
+            }
             var cleanReply = response.replace("[ACTION]", "").trim();
             remember("jork", cleanReply);
             log("-> " + cleanReply.slice(0, 80));
