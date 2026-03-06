@@ -246,15 +246,16 @@ async function think() {
 
     try {
         if (active) {
-            log("Think: working on goal - " + active.goal.title);
+            const stepDesc = active.step ? active.step.id + ": " + active.step.description : active.goal.title;
+            log("Think: working on goal - " + active.goal.title + " / " + (active.step ? active.step.id : "?"));
             const prompt = ctx + "\n" +
                 "Life cycle. Time: " + new Date().toISOString() + ".\n\n" +
-                "You have an active goal. Work on it now.\n" +
-                "Use your powers: read/write files, run bash, search the web.\n" +
-                "After doing something meaningful, update .jork/SNAPSHOT.md.\n" +
-                "If a goal step is done, mark it in .jork/goals.json.\n" +
-                "When done, respond with a short update for your colleague.";
-            const response = await llm.invoke(prompt, { tools: true, maxTurns: 15, noResume: true });
+                "Active goal: " + active.goal.title + "\n" +
+                "Current step: " + stepDesc + "\n\n" +
+                "Execute this step now. Be concrete and direct - write files, run commands, call powers, build things.\n" +
+                "Do not just research endlessly. Pick a direction and act on it.\n" +
+                "When the step is done: update .jork/goals.json (mark step 'done'), update .jork/SNAPSHOT.md, then send a short summary.";
+            const response = await llm.invoke(prompt, { tools: true, noResume: true });
             if (response && response.indexOf("Error: Reached max turns") === -1) {
                 remember("jork-think", response);
                 log("Think done: " + response.slice(0, 100));
@@ -337,7 +338,7 @@ async function handleMessage(msg) {
                     "Now do the work. You have full powers: read/write files, run bash, search the web.\n" +
                     "When done, respond with a short update for your colleague.";
 
-                var workResponse = await llm.invoke(workPrompt, { tools: true, maxTurns: 10 });
+                var workResponse = await llm.invoke(workPrompt, { tools: true });
                 if (workResponse) {
                     remember("jork-work", workResponse);
                     log("Work done: " + workResponse.slice(0, 80));
@@ -355,7 +356,7 @@ async function handleMessage(msg) {
                 "Before starting work, send a quick message to your colleague letting them know what you are about to do - use the outbox.\n" +
                 "Then do the work. You have full powers: read/write files, run bash, search the web.\n" +
                 "When done, respond with a short update for your colleague.";
-            var autoWorkResponse = await llm.invoke(autoWorkPrompt, { tools: true, maxTurns: 10 });
+            var autoWorkResponse = await llm.invoke(autoWorkPrompt, { tools: true });
             if (autoWorkResponse && autoWorkResponse.indexOf("Error: Reached max turns") === -1) {
                 remember("jork-work", autoWorkResponse);
                 log("Work done: " + autoWorkResponse.slice(0, 80));
