@@ -284,7 +284,22 @@ async function handleMessage(msg) {
                 }
             }
         } else {
-            tg.send("brain glitch. give me a sec.");
+            // chat hit max turns = claude tried to use tools, just go straight to work mode
+            var autoReply = "on it.";
+            remember("jork", autoReply);
+            log("-> " + autoReply + " (auto-work)");
+            tg.send(autoReply);
+            tg.typing();
+            var autoWorkPrompt = ctx + "\n" +
+                from + " asked: " + text + "\n\n" +
+                "Do the work. You have full powers: read/write files, run bash, search the web.\n" +
+                "When done, respond with a short update for your colleague.";
+            var autoWorkResponse = await llm.invoke(autoWorkPrompt, { tools: true, maxTurns: 10 });
+            if (autoWorkResponse && autoWorkResponse.indexOf("Error: Reached max turns") === -1) {
+                remember("jork-work", autoWorkResponse);
+                log("Work done: " + autoWorkResponse.slice(0, 80));
+                tg.send(autoWorkResponse);
+            }
         }
     } catch(e) {
         log("Msg err: " + e.message);
