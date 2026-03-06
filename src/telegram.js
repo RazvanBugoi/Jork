@@ -74,4 +74,9 @@ function poll() {
     });
 }
 
-module.exports = { send, poll };
+// show typing indicator in TG
+function typing() {
+    post('sendChatAction', { chat_id: cfg.TG_CHAT_ID, action: 'typing' });
+}
+
+module.exports = { send, poll, typing };
