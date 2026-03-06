@@ -73,24 +73,48 @@ function loadAvailablePowers() {
     try { return fs.readFileSync(cfg.AVAILABLE_POWERS(), "utf8"); } catch(e) { return ""; }
 }
 
-function fetchAvailablePowers() {
-    const url = "https://raw.githubusercontent.com/hirodefi/Jork-Powers/main/INDEX.md";
+function httpsGet(url) {
     return new Promise(function(resolve) {
         https.get(url, function(res) {
             var data = "";
             res.on("data", function(chunk) { data += chunk; });
-            res.on("end", function() {
-                if (data && data.length > 10) {
-                    try { fs.writeFileSync(cfg.AVAILABLE_POWERS(), data); } catch(e) {}
-                    log("Available powers updated from GitHub.");
-                }
-                resolve();
-            });
-        }).on("error", function(e) {
-            log("Could not fetch powers index: " + e.message);
-            resolve();
-        });
+            res.on("end", function() { resolve(res.statusCode === 200 ? data : null); });
+        }).on("error", function() { resolve(null); });
     });
+}
+
+async function fetchAvailablePowers() {
+    const base = "https://raw.githubusercontent.com/hirodefi/Jork-Powers/main";
+    const indexMd = await httpsGet(base + "/INDEX.md");
+    if (!indexMd) { log("Could not fetch powers index from GitHub."); return; }
+
+    // parse power names from INDEX.md table rows: | name | type | desc |
+    var names = [];
+    indexMd.split("\n").forEach(function(line) {
+        var m = line.match(/^\|\s*([a-z][a-z0-9_-]+)\s*\|/);
+        if (m && m[1] !== "power") names.push(m[1]);
+    });
+
+    // fetch each power's README
+    var sections = ["# Available Powers\n\nPowers live at https://github.com/hirodefi/Jork-Powers\n"];
+    sections.push("## Index\n" + indexMd);
+
+    for (var i = 0; i < names.length; i++) {
+        var readme = await httpsGet(base + "/" + names[i] + "/README.md");
+        if (readme) {
+            sections.push("## Power: " + names[i] + "\n" + readme.trim());
+        }
+    }
+
+    sections.push("## Creating new powers\n" +
+        "If no existing power fits the need, write a new one.\n" +
+        "Create a folder in [workspace]/powers/[power-name]/ with README.md and an index file.\n" +
+        "Follow the structure at https://github.com/hirodefi/Jork-Powers/blob/main/STRUCTURE.md\n" +
+        "No permission needed - just build it and use it.");
+
+    var note = sections.join("\n\n---\n\n");
+    try { fs.writeFileSync(cfg.AVAILABLE_POWERS(), note); } catch(e) {}
+    log("Available powers fetched from GitHub (" + names.length + " powers).");
 }
 
 function outboxPath() {
