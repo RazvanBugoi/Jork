@@ -1,6 +1,7 @@
 "use strict";
 const fs = require("fs");
 const path = require("path");
+const https = require("https");
 const cfg = require("./config");
 const tg = require("./telegram");
 const llm = require("./llm");
@@ -68,6 +69,30 @@ function loadPowersIndex() {
     try { return fs.readFileSync(indexPath, "utf8").slice(0, 500); } catch(e) { return ""; }
 }
 
+function loadAvailablePowers() {
+    try { return fs.readFileSync(cfg.AVAILABLE_POWERS(), "utf8"); } catch(e) { return ""; }
+}
+
+function fetchAvailablePowers() {
+    const url = "https://raw.githubusercontent.com/hirodefi/Jork-Powers/main/INDEX.md";
+    return new Promise(function(resolve) {
+        https.get(url, function(res) {
+            var data = "";
+            res.on("data", function(chunk) { data += chunk; });
+            res.on("end", function() {
+                if (data && data.length > 10) {
+                    try { fs.writeFileSync(cfg.AVAILABLE_POWERS(), data); } catch(e) {}
+                    log("Available powers updated from GitHub.");
+                }
+                resolve();
+            });
+        }).on("error", function(e) {
+            log("Could not fetch powers index: " + e.message);
+            resolve();
+        });
+    });
+}
+
 function outboxPath() {
     return path.join(cfg.ROOT, "outbox.jsonl");
 }
@@ -97,6 +122,9 @@ function buildContext() {
         "--- GOALS ---\n" + goalContext + "\n";
 
     if (powers) ctx += "\n--- POWERS ---\n" + powers + "\n";
+
+    const availPowers = loadAvailablePowers();
+    if (availPowers) ctx += "\n--- AVAILABLE POWERS (from GitHub) ---\n" + availPowers + "\n";
 
     ctx += "\n--- WORKSPACE ---\n" + cfg.WORKSPACE + "\n";
     ctx += "\n--- OUTBOX ---\nTo message your colleague, append to " + outboxPath() + ":\n";
@@ -318,6 +346,7 @@ async function run() {
 
     initNucleus();
     pulse();
+    await fetchAvailablePowers();
 
     // flush stale TG messages
     const stale = await tg.poll();
