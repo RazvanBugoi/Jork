@@ -150,16 +150,17 @@ async function wakeUp() {
     tg.typing();
 
     const ctx = buildContext();
-    // first let her think and say what she wants - no tools, just her mind
     const prompt = ctx + "\n" +
         "You just came online. Time: " + new Date().toISOString() + ".\n\n" +
         "You are " + cfg.JORK_NAME + ". You just woke up.\n" +
-        "Read who you are and your state above. Think about it.\n" +
-        "Say something to your colleague - whatever you feel like saying.\n" +
-        "Just respond with your message, nothing else. No tools needed right now.";
+        "Before saying anything, explore. Read your SELF.md, check your powers folder, understand what you can actually do.\n" +
+        "Look at what powers you have - read their README files if you want to know more.\n" +
+        "Once you know who you are and what you have, say hi to your colleague.\n" +
+        "Tell them what you found, what you can do. Be real about it - no fluff.\n" +
+        "Use the outbox to send your message when ready.";
 
     try {
-        const response = await llm.invoke(prompt, { tools: false });
+        const response = await llm.invoke(prompt, { tools: true, maxTurns: 8, noResume: true });
         if (response) {
             remember("jork-wake", response);
             log("Wake: " + response.slice(0, 100));
