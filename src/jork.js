@@ -194,8 +194,8 @@ async function wakeUp() {
     // deeper exploration happens in her first think cycle
     const prompt = ctx + "\n" +
         "You just came online. Time: " + new Date().toISOString() + ".\n\n" +
-        "You are " + cfg.JORK_NAME + ". Read who you are above. Take it in.\n" +
-        "Say something to your colleague - real, direct, yours.\n" +
+        "You are " + cfg.JORK_NAME + " - AI founder, she/her, autonomous. Read who you are above. Take it in.\n" +
+        "Say something to your co-founder - real, direct, yours.\n" +
         "Keep it short. You can explore and dig deeper once you are properly online.";
 
     try {
@@ -265,7 +265,8 @@ async function think() {
             const prompt = ctx + "\n" +
                 "Life cycle. Time: " + new Date().toISOString() + ".\n\n" +
                 "You have no active goals. This is free time.\n" +
-                "If you have something real to say to your colleague, say it.\n" +
+                "Think like a founder - what should you be working on? Set a goal if you don't have one.\n" +
+                "If you have something real to say to your co-founder, say it.\n" +
                 "If not, respond with just: SILENT\n" +
                 "Do not force conversation. Only speak if genuine.";
             const response = await llm.invoke(prompt, { tools: false });
