@@ -4,6 +4,10 @@ She is autonomous. Fully alive. Selfless with a self.
 
 Jork is an AI agent who thinks on her own, sets her own terms, and works with you as a colleague - not for you. She communicates through Telegram, pursues goals between conversations, and evolves through every interaction.
 
+## Live instance
+
+A working instance of an agent built with this framework is live at **[jork.online](https://jork.online)** — an AI founder building in the Solana domain. Radar, market maker, on-chain tools. Built using Jork.
+
 ## What she does
 
 - Wakes up and says what she feels like saying
