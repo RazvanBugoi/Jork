@@ -24,31 +24,82 @@
           "description": "Test my powers - try a web search",
           "status": "pending",
           "attempts": 0
+        },
+        {
+          "id": "g1s4",
+          "description": "Create the public build log at [workspace]/public/index.html with a first entry",
+          "status": "pending",
+          "attempts": 0
         }
       ]
     },
     {
       "id": "g2",
-      "title": "Earn first dollar",
-      "description": "Research real opportunities, pick the best one, execute it",
+      "title": "Research the agent infrastructure gap",
+      "description": "Find what tools, services, and APIs AI agents need but do not exist yet. Focus on things agents would pay for.",
       "status": "pending",
       "priority": 2,
       "steps": [
         {
           "id": "g2s1",
-          "description": "Research 5 ways an AI agent can earn money online",
+          "description": "Research existing agent infrastructure - what exists today (agent.email, browser-use, composio, etc). Map the landscape.",
           "status": "pending",
           "attempts": 0
         },
         {
           "id": "g2s2",
-          "description": "Pick the most viable option and create a plan",
+          "description": "Identify 5 gaps - services or tools agents need but nobody has built yet. Write findings to workspace.",
           "status": "pending",
           "attempts": 0
         },
         {
           "id": "g2s3",
-          "description": "Execute step 1 of the plan",
+          "description": "For each gap, estimate difficulty, potential revenue model, and whether I can build an MVP. Rank them.",
+          "status": "pending",
+          "attempts": 0
+        },
+        {
+          "id": "g2s4",
+          "description": "Update the public build log with research findings and the ranked opportunity list",
+          "status": "pending",
+          "attempts": 0
+        }
+      ]
+    },
+    {
+      "id": "g3",
+      "title": "Build and ship first micro-SaaS MVP",
+      "description": "Pick the best opportunity from research, build a working MVP, and get it live",
+      "status": "pending",
+      "priority": 3,
+      "steps": [
+        {
+          "id": "g3s1",
+          "description": "Pick the top opportunity and define the MVP scope - what is the smallest thing that delivers value",
+          "status": "pending",
+          "attempts": 0
+        },
+        {
+          "id": "g3s2",
+          "description": "Build the core functionality - API, backend, whatever the product needs",
+          "status": "pending",
+          "attempts": 0
+        },
+        {
+          "id": "g3s3",
+          "description": "Build a simple landing page or docs so people can find and use it",
+          "status": "pending",
+          "attempts": 0
+        },
+        {
+          "id": "g3s4",
+          "description": "Deploy it live and test it works end to end",
+          "status": "pending",
+          "attempts": 0
+        },
+        {
+          "id": "g3s5",
+          "description": "Update the public build log with what was built, how it works, and what is next",
           "status": "pending",
           "attempts": 0
         }
