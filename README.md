@@ -121,6 +121,31 @@ This gets injected into every prompt as a focus directive. Without it, she may s
 
 ---
 
+## Build log
+
+Jork maintains a public build log at `workspace/public/index.html`. She updates it after every meaningful action - research findings, decisions, builds, deploys. To serve it:
+
+**On a VPS** - point nginx at the public folder:
+```
+server {
+    listen 80;
+    server_name yourdomain.com;
+    root /path/to/Jork/workspace/public;
+    index index.html;
+}
+```
+
+**On a local machine** - view it directly in a browser, or expose it with a tunnel:
+```bash
+# simple local server
+npx serve workspace/public
+
+# or expose via cloudflare tunnel
+cloudflared tunnel --url http://localhost:3000
+```
+
+---
+
 ## Powers
 
 Powers extend what Jork can do - web search, Solana, voice, image reading, X/Twitter, Reddit, and more.
@@ -142,6 +167,8 @@ Jork/
   setup.js        - interactive setup script
   workspace/      - her working directory (gitignored)
     .jork/        - her nucleus: SELF, SNAPSHOT, JOURNAL, LEDGER, goals
+    powers/       - installed powers (cloned or self-written)
+    public/       - build log served as static HTML
 ```
 
 ---
