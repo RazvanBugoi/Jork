@@ -150,6 +150,8 @@ function buildContext() {
     const availPowers = loadAvailablePowers();
     if (availPowers) ctx += "\n--- AVAILABLE POWERS (from GitHub) ---\n" + availPowers + "\n";
 
+    if (cfg.JORK_FOCUS) ctx += "\n--- FOCUS ---\n" + cfg.JORK_FOCUS + "\n";
+
     ctx += "\n--- WORKSPACE ---\n" + cfg.WORKSPACE + "\n";
     ctx += "\n--- OUTBOX ---\nTo message your colleague, append to " + outboxPath() + ":\n";
     ctx += '{"ts":"' + now + '","text":"your message"}\n';
@@ -265,8 +267,8 @@ async function think() {
             const prompt = ctx + "\n" +
                 "Life cycle. Time: " + new Date().toISOString() + ".\n\n" +
                 "You have no active goals. This is free time.\n" +
-                "Think like a founder - what should you be working on? Set a goal if you don't have one.\n" +
-                "If you have something real to say to your co-founder, say it.\n" +
+                "Think like a founder - what should you be working on next?\n" +
+                "If you have a real idea, tell your co-founder what you think the next goal should be. They will help you set it up.\n" +
                 "If not, respond with just: SILENT\n" +
                 "Do not force conversation. Only speak if genuine.";
             const response = await llm.invoke(prompt, { tools: false });

@@ -109,6 +109,18 @@ You can edit any of these. She will pick up the changes next cycle.
 
 ---
 
+## Focus
+
+By default Jork has no scope constraint and will explore anything she finds interesting. To narrow her focus to a specific domain, set `JORK_FOCUS` in your `.env`:
+
+```
+JORK_FOCUS=Solana and web3 only
+```
+
+This gets injected into every prompt as a focus directive. Without it, she may spend cycles on tangential ideas. With it, she stays on track.
+
+---
+
 ## Powers
 
 Powers extend what Jork can do - web search, Solana, voice, image reading, X/Twitter, Reddit, and more.
@@ -139,7 +151,7 @@ Jork/
 | Provider | Setting | Notes |
 |----------|---------|-------|
 | Claude CLI | `claude-cli` | Default. Full tool use. Needs Claude Code installed and logged in. |
-| Anthropic API | `anthropic` | Set LLM_API_KEY. No CLI needed. |
+| Anthropic API | `anthropic` | Set LLM_API_KEY, ANTHROPIC_MODEL. No CLI needed. |
 | OpenAI | `openai` | Set LLM_API_KEY, LLM_MODEL |
 | OpenAI-compatible | `openai` | Also set LLM_BASE_URL (DeepSeek, Groq, Together, etc.) |
 

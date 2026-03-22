@@ -33,9 +33,10 @@ module.exports = {
     LLM_API_KEY: process.env.LLM_API_KEY || '',
     LLM_BASE_URL: process.env.LLM_BASE_URL || 'https://api.openai.com/v1',
     LLM_MODEL: process.env.LLM_MODEL || 'gpt-4o',
-    ANTHROPIC_MODEL: process.env.LLM_MODEL || 'claude-opus-4-6',
+    ANTHROPIC_MODEL: process.env.ANTHROPIC_MODEL || 'claude-opus-4-6',
 
     JORK_NAME: process.env.JORK_NAME || 'Jork',
+    JORK_FOCUS: process.env.JORK_FOCUS || '',
 
     THINK_INTERVAL: parseInt(process.env.THINK_INTERVAL) || 300000,
     HEARTBEAT_INTERVAL: parseInt(process.env.HEARTBEAT_INTERVAL) || 30000,
@@ -57,6 +58,7 @@ module.exports = {
     JOURNAL: () => path.join(NUCLEUS, 'JOURNAL.md'),
     LEDGER: () => path.join(NUCLEUS, 'LEDGER.md'),
     HISTORY: () => path.join(NUCLEUS, 'history.jsonl'),
+    AVAILABLE_POWERS: () => path.join(NUCLEUS, 'AVAILABLE_POWERS.md'),
 
     ensure() {
         [WORKSPACE, NUCLEUS, path.join(NUCLEUS, 'memory')].forEach(d => {
